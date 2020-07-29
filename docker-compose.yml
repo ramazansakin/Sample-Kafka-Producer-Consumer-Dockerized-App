@@ -1,0 +1,51 @@
+version: '3'
+services:
+  zookeeper:
+    image: wurstmeister/zookeeper
+    container_name: zookeeper
+    restart: always
+    ports:
+      - "2181:2181"
+
+  kafka:
+    image: wurstmeister/kafka
+    container_name: kafka
+    restart: always
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    depends_on:
+      - zookeeper
+    links:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      ALLOW_PLAINTEXT_LISTENER: "yes"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_LISTENERS: PLAINTEXT://:9092,PLAINTEXT_HOST://:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_CREATE_TOPICS: "Kafka_Sample_Topic:1:1,Kafka_Todo_Topic:1:1,Kafka_User_Topic:1:1"
+      KAFKA_TOPIC: "Kafka_Sample_Topic,Kafka_Todo_Topic,Kafka_User_Topic"
+
+  producer-service:
+    image: rsakin/kafka-producer-service
+    container_name: producer-service
+    ports:
+      - "9001:9001"
+    depends_on:
+      - kafka
+    links:
+      - kafka
+
+  consumer-service:
+    image: rsakin/kafka-consumer-service
+    container_name: consumer-service
+    ports:
+      - "9002:9002"
+    depends_on:
+      - kafka
+      - producer-service
+    links:
+      - kafka
+      - producer-service
